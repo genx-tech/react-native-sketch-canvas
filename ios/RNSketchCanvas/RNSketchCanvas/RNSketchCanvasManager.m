@@ -34,6 +34,7 @@ RCT_CUSTOM_VIEW_PROPERTY(localSourceImage, NSDictionary, RNSketchCanvas)
     NSDictionary *dict = [RCTConvert NSDictionary:json];
     dispatch_async(dispatch_get_main_queue(), ^{
         [currentView openSketchFile:dict[@"filename"]
+                             base64:[dict[@"base64"] isEqual: [NSNull null]] ? @"" : dict[@"base64"]
                           directory:[dict[@"directory"] isEqual: [NSNull null]] ? @"" : dict[@"directory"]
                         contentMode:[dict[@"mode"] isEqual: [NSNull null]] ? @"" : dict[@"mode"]];
     });
@@ -76,8 +77,13 @@ RCT_EXPORT_METHOD(addPath:(nonnull NSNumber *)reactTag pathId: (int) pathId stro
 {
     NSMutableArray *cgPoints = [[NSMutableArray alloc] initWithCapacity: points.count];
     for (NSString *coor in points) {
-        NSArray *coorInNumber = [coor componentsSeparatedByString: @","];
-        [cgPoints addObject: [NSValue valueWithCGPoint: CGPointMake([coorInNumber[0] floatValue], [coorInNumber[1] floatValue])]];
+        @autoreleasepool {
+            NSArray *coorInNumber = [coor componentsSeparatedByString: @","];
+            [cgPoints addObject: [NSValue valueWithCGPoint: CGPointMake([coorInNumber[0] floatValue], [coorInNumber[1] floatValue])]];
+            [self runCanvas:reactTag block:^(RNSketchCanvas *canvas) {
+                [canvas addPath: pathId strokeColor: strokeColor strokeWidth: strokeWidth points: cgPoints];
+            }];
+        }
     }
 
     [self runCanvas:reactTag block:^(RNSketchCanvas *canvas) {

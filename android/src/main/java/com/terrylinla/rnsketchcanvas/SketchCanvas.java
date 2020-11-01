@@ -62,26 +62,31 @@ public class SketchCanvas extends View {
         mContext = context;
     }
 
-    public boolean openImageFile(String filename, String directory, String mode) {
+    public boolean openImageFile(String base64, String filename, String directory, String mode) {
+        Bitmap bitmap = null;
         if(filename != null) {
             int res = mContext.getResources().getIdentifier(
                 filename.lastIndexOf('.') == -1 ? filename : filename.substring(0, filename.lastIndexOf('.')), 
                 "drawable", 
                 mContext.getPackageName());
             BitmapFactory.Options bitmapOptions = new BitmapFactory.Options();
-            Bitmap bitmap = res == 0 ? 
+            bitmap = res == 0 ? 
                 BitmapFactory.decodeFile(new File(filename, directory == null ? "" : directory).toString(), bitmapOptions) :
                 BitmapFactory.decodeResource(mContext.getResources(), res);
-            if(bitmap != null) {
-                mBackgroundImage = bitmap;
-                mOriginalHeight = bitmap.getHeight();
-                mOriginalWidth = bitmap.getWidth();
-                mContentMode = mode;
+        }
+        if(base64 != null) {
+            byte[] decodedString = Base64.decode(base64, Base64.DEFAULT);
+            bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+        }
+        if(bitmap != null) {
+            mBackgroundImage = bitmap;
+            mOriginalHeight = bitmap.getHeight();
+            mOriginalWidth = bitmap.getWidth();
+            mContentMode = mode;
 
-                invalidateCanvas(true);
+            invalidateCanvas(true);
 
-                return true;
-            }
+            return true;
         }
         return false;
     }
@@ -405,7 +410,7 @@ public class SketchCanvas extends View {
         if (mBackgroundImage != null && cropToImageSize) {
             Rect targetRect = new Rect();
             Utility.fillImage(mDrawingBitmap.getWidth(), mDrawingBitmap.getHeight(), 
-                bitmap.getWidth(), bitmap.getHeight(), "AspectFill").roundOut(targetRect);
+                bitmap.getWidth(), bitmap.getHeight(), mContentMode).roundOut(targetRect);
             canvas.drawBitmap(mDrawingBitmap, null, targetRect, mPaint);
         } else {
             canvas.drawBitmap(mDrawingBitmap, 0, 0, mPaint);

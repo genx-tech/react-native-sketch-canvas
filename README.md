@@ -1,11 +1,8 @@
 react-native-sketch-canvas
 ===================
 
-A React Native component for drawing by touching on both iOS and Android.
-
-<img src="https://media.giphy.com/media/3ov9kbuQg8ayvoYG8E/giphy.gif" height="400" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="https://media.giphy.com/media/3ov9jNZooUPTbWWbh6/giphy.gif" height="400" />
-<br/>
-<img src="https://i.imgur.com/lc5WlGz.png" height="400" />&nbsp;&nbsp;&nbsp;&nbsp;<img src="https://i.imgur.com/NBZvKtp.png" height="400" />
+A React Native component that was build on the react-native-sketch-canvas library from Terry Lin.
+It features drawing and also moving the sketch by touching on both iOS and Android.
 
 Features
 -------------
@@ -88,8 +85,11 @@ AppRegistry.registerComponent('example', () => example);
 | user | `string` | An identifier to identify who draws the path. Useful when undo between two users |
 | touchEnabled | `bool` | If false, disable touching. Default is true.  |
 | localSourceImage | `object` | Require an object (see [below](#objects)) which consists of `filename`, `directory`(optional) and `mode`(optional). If set, the image will be loaded and display as a background in canvas. (Thanks to diego-caceres-galvan))([Here](#background-image) for details) |
+| promptForExternalWritePermissions | `bool` | If true, prompt the user for write permissions to an External Storage device. Default is false. |
 | permissionDialogTitle | `string` | Android Only: Provide a Dialog Title for the Image Saving PermissionDialog. Defaults to empty string if not set |
 | permissionDialogMessage | `string` | Android Only: Provide a Dialog Message for the Image Saving PermissionDialog. Defaults to empty string if not set |
+| requiredTouches | `number` | (Optional) Fingers on the screen for drawing to be active. If you set this to 1, drawing is only possible while the user only uses one finger. So for 2 fingers, you can use another action. |
+| startToDrawDelay | `number` | (Optional) Delay in milliseconds after which the drawing starts. Use it if you use another PanResponder in the parent. |
 
 #### Methods
 -------------
@@ -101,7 +101,7 @@ AppRegistry.registerComponent('example', () => example);
 | deletePath(id) | Delete a path with its `id` |
 | save(imageType, transparent, folder, filename, includeImage, cropToImageSize) | Save image to camera roll or filesystem. If `localSourceImage` is set and a background image is loaded successfully, set `includeImage` to true to include background image and set `cropToImageSize` to true to crop output image to background image.<br/>Android: Save image in `imageType` format with transparent background (if `transparent` sets to True) to **/sdcard/Pictures/`folder`/`filename`** (which is Environment.DIRECTORY_PICTURES).<br/>iOS: Save image in `imageType` format with transparent background (if `transparent` sets to True) to camera roll or file system. If `folder` and `filename` are set, image will save to **temporary directory/`folder`/`filename`** (which is NSTemporaryDirectory())  |
 | getPaths() | Get the paths that drawn on the canvas |
-| getBase64(imageType, transparent, includeImage, cropToImageSize, callback) | Get the base64 of image and receive data in callback function, which called with 2 arguments. First one is error (null if no error) and second one is base64 result. |
+| getBase64(imageType, transparent, includeImage, includeText, cropToImageSize, callback) | Get the base64 of image and receive data in callback function, which called with 2 arguments. First one is error (null if no error) and second one is base64 result. |
 
 #### Constants
 -------------

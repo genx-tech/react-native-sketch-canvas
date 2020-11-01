@@ -1,9 +1,8 @@
 import * as React from 'react'
 import {
-  ViewProperties,
   StyleProp,
   ViewStyle
-} from "react-native"
+} from 'react-native'
 
 type ImageType = 'png' | 'jpg'
 
@@ -55,7 +54,8 @@ export interface SavePreference {
 }
 
 export interface LocalSourceImage {
-  path: string
+  base64?: string
+  filename?: string
   directory?: string
   mode?: 'AspectFill' | 'AspectFit' | 'ScaleToFill'
 }
@@ -90,6 +90,7 @@ export interface SketchCanvasProps {
 export class SketchCanvas extends React.Component<SketchCanvasProps & ViewProperties> {
   clear(): void
   undo(): number
+  redo(): number
   addPath(data: Path): void
   deletePath(id: number): void
 
@@ -101,6 +102,7 @@ export class SketchCanvas extends React.Component<SketchCanvasProps & ViewProper
    */
   save(imageType: ImageType, transparent: boolean, folder: string, filename: string, includeImage: boolean, includeText: boolean, cropToImageSize: boolean): void
   getPaths(): Path[]
+  getUndonePaths(): Path[]
 
   /**
    * @param imageType "png" or "jpg"
@@ -124,6 +126,7 @@ export interface RNSketchCanvasProps {
   onStrokeEnd?: (path: Path) => void
   onClosePressed?: () => void
   onUndoPressed?: (id: number) => void
+  onRedoPressed?: (id: number) => void
   onClearPressed?: () => void
   onPathsChange?: (pathsCount: number) => void
   user?: string
@@ -131,6 +134,7 @@ export interface RNSketchCanvasProps {
   closeComponent?: JSX.Element,
   eraseComponent?: JSX.Element,
   undoComponent?: JSX.Element,
+  redoComponent?: JSX.Element,
   clearComponent?: JSX.Element,
   saveComponent?: JSX.Element,
   strokeComponent?: (color: string) => JSX.Element
@@ -167,6 +171,7 @@ export interface RNSketchCanvasProps {
 export default class RNSketchCanvas extends React.Component<RNSketchCanvasProps & ViewProperties> {
   clear(): void
   undo(): number
+  redo(): number
   addPath(data: Path): void
   deletePath(id: number): void
   save(): void
