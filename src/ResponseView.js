@@ -5,7 +5,6 @@ import {
     Easing,
     PanResponder,
     StyleSheet,
-    View,
     Platform,
 } from 'react-native';
 
@@ -188,7 +187,9 @@ export default class ResponsiveView extends Component {
 
     render() {
         return (
-            <Animated.View style={styles.viewport} {...this.panGesture.panHandlers}>
+            <Animated.View
+                style={styles.viewport}
+                {...this.panGesture.panHandlers}>
                 <Animated.View
                     style={[
                         this.props.initialStyle,

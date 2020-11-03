@@ -34,8 +34,13 @@ class SketchCanvas extends React.Component {
         onSketchSaved: PropTypes.func,
         user: PropTypes.string,
         requiredTouches: PropTypes.number,
+        overridePanResponder: PropTypes.bool,
         startToDrawDelay: PropTypes.number,
         scale: PropTypes.number,
+        onPanResponderGrantRef: PropTypes.func,
+        onPanResponderMoveRef: PropTypes.func,
+        onPanResponderReleaseRef: PropTypes.func,
+        onPanResponderTerminateRef: PropTypes.func,
 
         touchEnabled: PropTypes.bool,
 
@@ -83,7 +88,12 @@ class SketchCanvas extends React.Component {
         user: null,
         startToDrawDelay: 0,
         requiredTouches: null,
+        overridePanResponder: false,
         scale: 1,
+        onPanResponderGrantRef: () => {},
+        onPanResponderMoveRef: () => {},
+        onPanResponderReleaseRef: () => {},
+        onPanResponderTerminateRef: () => {},
 
         touchEnabled: true,
 
@@ -108,6 +118,11 @@ class SketchCanvas extends React.Component {
         this.touchStartTime = 0;
         this.isDrawing = false;
 
+        this.onPanResponderGrant = this.onPanResponderGrant.bind(this);
+        this.onPanResponderMove = this.onPanResponderMove.bind(this);
+        this.onPanResponderRelease = this.onPanResponderRelease.bind(this);
+        this.onPanResponderTerminate = this.onPanResponderTerminate.bind(this);
+
         this.state = {
             text: this._processText(
                 props.text ? props.text.map((t) => ({...t})) : null,
@@ -115,135 +130,153 @@ class SketchCanvas extends React.Component {
             scale: 1,
         };
 
+        this.props.onPanResponderGrantRef(this.onPanResponderGrant);
+        this.props.onPanResponderMoveRef(this.onPanResponderMove);
+        this.props.onPanResponderReleaseRef(this.onPanResponderRelease);
+        this.props.onPanResponderTerminateRef(this.onPanResponderTerminate);
+
         this.panResponder = PanResponder.create({
             // Ask to be the responder:
             onStartShouldSetPanResponder: (evt, gestureState) =>
-                !this.props.requiredTouches ||
-                gestureState.numberActiveTouches === this.props.requiredTouches,
+                !this.props.overridePanResponder &&
+                (!this.props.requiredTouches ||
+                    gestureState.numberActiveTouches ===
+                        this.props.requiredTouches),
             onStartShouldSetPanResponderCapture: (evt, gestureState) =>
-                !this.props.requiredTouches ||
-                gestureState.numberActiveTouches === this.props.requiredTouches,
+                !this.props.overridePanResponder &&
+                (!this.props.requiredTouches ||
+                    gestureState.numberActiveTouches ===
+                        this.props.requiredTouches),
             onMoveShouldSetPanResponder: (evt, gestureState) =>
-                !this.props.requiredTouches ||
-                gestureState.numberActiveTouches === this.props.requiredTouches,
+                !this.props.overridePanResponder &&
+                (!this.props.requiredTouches ||
+                    gestureState.numberActiveTouches ===
+                        this.props.requiredTouches),
             onMoveShouldSetPanResponderCapture: (evt, gestureState) =>
-                !this.props.requiredTouches ||
-                gestureState.numberActiveTouches === this.props.requiredTouches,
+                !this.props.overridePanResponder &&
+                (!this.props.requiredTouches ||
+                    gestureState.numberActiveTouches ===
+                        this.props.requiredTouches),
 
-            onPanResponderGrant: (evt, gestureState) => {
-                if (!this.props.touchEnabled) {
-                    return;
-                }
-                if (
-                    this.props.requiredTouches &&
-                    gestureState.numberActiveTouches !==
-                        this.props.requiredTouches
-                ) {
-                    return;
-                }
-                this.touchStartTime = new Date().getTime();
-                this.isDrawing = false;
-            },
-            onPanResponderMove: (evt, gestureState) => {
-                if (!this.props.touchEnabled) {
-                    return;
-                }
-                if (
-                    this.props.requiredTouches &&
-                    gestureState.numberActiveTouches !==
-                        this.props.requiredTouches
-                ) {
-                    return;
-                }
-                if (!this.validateDrawingState(evt, gestureState)) {
-                    return;
-                }
-                if (this._path) {
-                    const x = parseFloat(
-                            (
-                                gestureState.x0 +
-                                gestureState.dx / this.state.scale -
-                                this._offset.x
-                            ).toFixed(2),
-                        ),
-                        y = parseFloat(
-                            (
-                                gestureState.y0 +
-                                gestureState.dy / this.state.scale -
-                                this._offset.y
-                            ).toFixed(2),
-                        );
-                    UIManager.dispatchViewManagerCommand(
-                        this._handle,
-                        UIManager.RNSketchCanvas.Commands.addPoint,
-                        [
-                            parseFloat(x * this._screenScale),
-                            parseFloat(y * this._screenScale),
-                        ],
-                    );
-                    this._path.data.push(`${x},${y}`);
-                    this.props.onStrokeChanged(x, y);
-                }
-            },
-            onPanResponderRelease: (evt, gestureState) => {
-                if (!this.props.touchEnabled) {
-                    return;
-                }
-                if (!this.validateDrawingState(evt, gestureState)) {
-                    return;
-                }
-                if (this._path) {
-                    this._paths.push({
-                        path: this._path,
-                        size: this._size,
-                        drawer: this.props.user,
-                    });
-                    this.props.onStrokeEnd({
-                        path: this._path,
-                        size: this._size,
-                        drawer: this.props.user,
-                    });
-                }
-                UIManager.dispatchViewManagerCommand(
-                    this._handle,
-                    UIManager.RNSketchCanvas.Commands.endPath,
-                    [],
-                );
-            },
-            onPanResponderTerminate: (evt, gestureState) => {
-                if (!this.props.touchEnabled) {
-                    return;
-                }
-                if (
-                    this.props.requiredTouches &&
-                    gestureState.numberActiveTouches !==
-                        this.props.requiredTouches
-                ) {
-                    return;
-                }
-                if (this._path) {
-                    this.props.onStrokeEnd({
-                        path: this._path,
-                        size: this._size,
-                        drawer: this.props.user,
-                    });
-                    this._paths.push({
-                        path: this._path,
-                        size: this._size,
-                        drawer: this.props.user,
-                    });
-                }
-                UIManager.dispatchViewManagerCommand(
-                    this._handle,
-                    UIManager.RNSketchCanvas.Commands.endPath,
-                    [],
-                );
-            },
+            onPanResponderGrant: this.onPanResponderGrant,
+            onPanResponderMove: this.onPanResponderMove,
+            onPanResponderRelease: this.onPanResponderRelease,
+            onPanResponderTerminate: this.onPanResponderTerminate,
 
             onShouldBlockNativeResponder: (evt, gestureState) => {
                 return true;
             },
         });
+    }
+
+    onPanResponderTerminate(evt, gestureState) {
+        if (!this.props.touchEnabled) {
+            return;
+        }
+        if (
+            this.props.requiredTouches &&
+            gestureState.numberActiveTouches !== this.props.requiredTouches
+        ) {
+            return;
+        }
+        if (this._path) {
+            this.props.onStrokeEnd({
+                path: this._path,
+                size: this._size,
+                drawer: this.props.user,
+            });
+            this._paths.push({
+                path: this._path,
+                size: this._size,
+                drawer: this.props.user,
+            });
+        }
+        UIManager.dispatchViewManagerCommand(
+            this._handle,
+            UIManager.RNSketchCanvas.Commands.endPath,
+            [],
+        );
+    }
+
+    onPanResponderRelease(evt, gestureState) {
+        if (!this.props.touchEnabled) {
+            return;
+        }
+        if (!this.validateDrawingState(evt, gestureState)) {
+            return;
+        }
+        if (this._path) {
+            this._paths.push({
+                path: this._path,
+                size: this._size,
+                drawer: this.props.user,
+            });
+            this.props.onStrokeEnd({
+                path: this._path,
+                size: this._size,
+                drawer: this.props.user,
+            });
+        }
+        UIManager.dispatchViewManagerCommand(
+            this._handle,
+            UIManager.RNSketchCanvas.Commands.endPath,
+            [],
+        );
+    }
+
+    onPanResponderMove(evt, gestureState) {
+        if (!this.props.touchEnabled) {
+            return;
+        }
+        if (
+            this.props.requiredTouches &&
+            gestureState.numberActiveTouches !== this.props.requiredTouches
+        ) {
+            return;
+        }
+        if (!this.validateDrawingState(evt, gestureState)) {
+            return;
+        }
+        if (this._path) {
+            const x = parseFloat(
+                    (
+                        gestureState.x0 +
+                        gestureState.dx / this.state.scale -
+                        this._offset.x
+                    ).toFixed(2),
+                ),
+                y = parseFloat(
+                    (
+                        gestureState.y0 +
+                        gestureState.dy / this.state.scale -
+                        this._offset.y
+                    ).toFixed(2),
+                );
+            UIManager.dispatchViewManagerCommand(
+                this._handle,
+                UIManager.RNSketchCanvas.Commands.addPoint,
+                [
+                    parseFloat(x * this._screenScale),
+                    parseFloat(y * this._screenScale),
+                ],
+            );
+            this._path.data.push(`${x},${y}`);
+            this.props.onStrokeChanged(x, y);
+        }
+    }
+
+    onPanResponderGrant(evt, gestureState) {
+        if (!this.props.touchEnabled) {
+            return;
+        }
+        if (
+            this.props.requiredTouches &&
+            gestureState.numberActiveTouches !== this.props.requiredTouches
+        ) {
+            return;
+        }
+        this.touchStartTime = new Date().getTime();
+        this.isDrawing = false;
     }
 
     componentDidUpdate() {
